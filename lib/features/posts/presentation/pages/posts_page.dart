@@ -1,3 +1,4 @@
+import 'package:bloc_clean_master/features/posts/data/models/post_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/posts_bloc.dart';
@@ -6,39 +7,6 @@ import '../bloc/posts_state.dart';
 
 class PostsPage extends StatelessWidget {
   const PostsPage({super.key});
-
-  static const List<PostPreview> posts = [
-    PostPreview(
-      title: 'Designing a cleaner Flutter workflow',
-      body:
-          'A practical look at turning app ideas into small, focused screens that are easy to build and maintain.',
-      author: 'Ayesha',
-      readTime: '4 min read',
-      tag: 'Flutter',
-      color: Color(0xFF2563EB),
-      icon: Icons.auto_awesome_rounded,
-    ),
-    PostPreview(
-      title: 'Keeping business logic out of widgets',
-      body:
-          'UI becomes calmer when widgets only describe what the user sees and delegates the rest.',
-      author: 'Hamza',
-      readTime: '6 min read',
-      tag: 'Architecture',
-      color: Color(0xFF059669),
-      icon: Icons.account_tree_rounded,
-    ),
-    PostPreview(
-      title: 'Building lists that feel polished',
-      body:
-          'Spacing, hierarchy, empty states, and loading surfaces can make a simple feed feel production-ready.',
-      author: 'Sara',
-      readTime: '3 min read',
-      tag: 'UI',
-      color: Color(0xFFEA580C),
-      icon: Icons.view_agenda_rounded,
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +28,13 @@ class PostsView extends StatelessWidget {
           builder: (context, state) {
             if (state is PostsLoading) {
               return const Center(child: CircularProgressIndicator());
+            }
+            if (state is PostSubmitting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (state is PostsSubmitSuccess) {
+              return const Center(child: Text('Submitted successfully'));
             }
 
             if (state is PostsLoaded) {
@@ -105,13 +80,11 @@ class PostsView extends StatelessWidget {
 
 class _PostsHeader extends StatelessWidget {
   const _PostsHeader({required this.totalPosts});
-
   final int totalPosts;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -131,9 +104,18 @@ class _PostsHeader extends StatelessWidget {
           ),
         ),
         IconButton.filled(
-          onPressed: () {},
+          onPressed: () {
+            context.read<PostsBloc>().add(const LoadPostsEvents());
+          },
           icon: const Icon(Icons.refresh_rounded),
           tooltip: 'Refresh posts',
+        ),
+        IconButton.filled(
+          onPressed: () {
+            context.read<PostsBloc>().add(SubmitPostsSummaryEvent(totalPosts: totalPosts));
+          },
+          icon: const Icon(Icons.add),
+          tooltip: 'add post',
         ),
       ],
     );
@@ -144,6 +126,9 @@ class _SearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextField(
+      onChanged: (value){
+        context.read<PostsBloc>().add(SearchPostsEvents(value));
+      },
       decoration: InputDecoration(
         hintText: 'Search posts',
         prefixIcon: const Icon(Icons.search_rounded),
@@ -170,7 +155,7 @@ class _SearchBar extends StatelessWidget {
 class PostCard extends StatelessWidget {
   const PostCard({super.key, required this.post, required this.index});
 
-  final PostPreview post;
+  final PostModel post;
   final int index;
 
   @override
@@ -203,28 +188,7 @@ class PostCard extends StatelessWidget {
               Row(
                 children: [
                   _PostIcon(post: post),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '#$index  ${post.tag}',
-                          style: textTheme.labelLarge?.copyWith(
-                            color: post.color,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          '${post.author} • ${post.readTime}',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: const Color(0xFF667085),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  Spacer(),
                   IconButton(
                     onPressed: () {},
                     icon: const Icon(Icons.bookmark_border_rounded),
@@ -275,7 +239,7 @@ class PostCard extends StatelessWidget {
 class _PostIcon extends StatelessWidget {
   const _PostIcon({required this.post});
 
-  final PostPreview post;
+  final PostModel post;
 
   @override
   Widget build(BuildContext context) {
@@ -283,30 +247,11 @@ class _PostIcon extends StatelessWidget {
       width: 48,
       height: 48,
       decoration: BoxDecoration(
-        color: post.color.withValues(alpha: 0.12),
+        color: Colors.blue.shade100,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Icon(post.icon, color: post.color),
+      child: Icon(Icons.book, color: Colors.blue),
     );
   }
 }
 
-class PostPreview {
-  const PostPreview({
-    required this.title,
-    required this.body,
-    required this.author,
-    required this.readTime,
-    required this.tag,
-    required this.color,
-    required this.icon,
-  });
-
-  final String title;
-  final String body;
-  final String author;
-  final String readTime;
-  final String tag;
-  final Color color;
-  final IconData icon;
-}
